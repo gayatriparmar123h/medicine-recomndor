@@ -115,30 +115,59 @@ if st.button("🔍 Predict Disease"):
         with tab4:
             st.write(f"**Lifestyle Tips:** {data['Lifestyle Tips']}")
 
-# ------------------------
-# GPT-Powered Chatbot
-# ------------------------
-st.header("🤖 Ask Health Questions")
 
-api_key = st.text_input("🔑 Enter your OpenAI API Key", type="password")
-user_query = st.text_area("💬 Ask me anything about your symptoms, disease, or medicine:")
 
-if st.button("Ask GPT"):
-    if not api_key or not user_query:
-        st.warning("Please provide both the API key and your question.")
+# ------------------------
+# Offline AI Health Chatbot (No API Needed)
+# ------------------------
+
+st.header("🤖 Ask the Health Bot (Offline)")
+
+user_question = st.text_area("💬 Ask anything about a disease, medicine, symptoms, etc.")
+
+def keyword_matcher(question, df):
+    question = question.lower()
+    matched_rows = []
+
+    # Try matching any disease name mentioned
+    for _, row in df.iterrows():
+        disease = row["Disease"].lower()
+        if disease in question:
+            matched_rows.append(row)
+
+    if not matched_rows:
+        return "🤔 Sorry, I couldn't find a matching disease. Please ask about a known condition."
+
+    row = matched_rows[0]  # Only return the first match
+    answer = ""
+
+    # Smart reply builder
+    if "medicine" in question:
+        answer += f"💊 **Medicine for {row['Disease']}:** {row['Medicines']}\n\n"
+        answer += f"📦 **Dosage:** {row['Dosage']}"
+    elif "precaution" in question:
+        answer += f"🛡️ **Precautions for {row['Disease']}:** {row['Precautions']}"
+    elif "emergency" in question or "danger" in question:
+        answer += f"⚠️ **Emergency Signs of {row['Disease']}:** {row['Emergency Signs']}"
+    elif "symptom" in question:
+        answer += f"🤒 **Symptoms of {row['Disease']}:** {', '.join(row['Symptoms'])}"
+    elif "lifestyle" in question or "tip" in question:
+        answer += f"🌿 **Lifestyle Tips for {row['Disease']}:** {row['Lifestyle Tips']}"
+    elif "describe" in question or "about" in question:
+        answer += f"🩺 **About {row['Disease']}:** {row['Description']}"
     else:
-        try:
-            openai.api_key = api_key
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "You are a helpful medical assistant. Respond clearly and simply."},
-                    {"role": "user", "content": user_query}
-                ],
-                temperature=0.7,
-                max_tokens=200
-            )
-            st.subheader("💡 GPT's Response:")
-            st.write(response.choices[0].message["content"])
-        except Exception as e:
-            st.error(f"⚠️ Error: {str(e)}")
+        answer += f"💡 Here's what I know about **{row['Disease']}**:\n\n"
+        answer += f"- **Symptoms:** {', '.join(row['Symptoms'])}\n"
+        answer += f"- **Precautions:** {row['Precautions']}\n"
+        answer += f"- **Medicines:** {row['Medicines']} ({row['Dosage']})\n"
+        answer += f"- **Emergency Signs:** {row['Emergency Signs']}\n"
+        answer += f"- **Lifestyle Tips:** {row['Lifestyle Tips']}"
+
+    return answer
+
+if st.button("Ask"):
+    if not user_question.strip():
+        st.warning("Please enter a question.")
+    else:
+        response = keyword_matcher(user_question, df)
+        st.markdown(response)
