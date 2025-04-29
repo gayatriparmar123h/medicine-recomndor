@@ -4,7 +4,6 @@ import random
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import MultiLabelBinarizer
 from io import StringIO
-import openai
 
 # ------------------------
 # Embedded CSV Dataset
